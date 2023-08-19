@@ -1,0 +1,29 @@
+const SYMBOLS_API_BASE_URL = 'https://api.frontendexpert.io/api/fe/stock-symbols';
+const MARKET_CAPS_API_BASE_URL = 'https://api.frontendexpert.io/api/fe/stock-market-caps';
+const PRICES_API_BASE_URL = 'https://api.frontendexpert.io/api/fe/stock-prices';
+
+async function trendingStocks(n) {
+  let [symbols, marketCaps] = await Promise.all([
+    fetch(SYMBOLS_API_BASE_URL),
+    fetch(MARKET_CAPS_API_BASE_URL),
+  ]).then((responses) => Promise.all(responses.map((response) => response.json())));
+  marketCaps = marketCaps.sort((marketCap1, marketCap2) => {
+    return marketCap2['market-cap'] - marketCap1['market-cap'];
+  }).slice(0, n);
+
+  const pricesUrl = new URL(PRICES_API_BASE_URL);
+  pricesUrl.searchParams.set(
+    'symbols',
+    JSON.stringify(marketCaps.map((marketCap) => marketCap.symbol))
+  );
+  const prices = await fetch(pricesUrl).then((response) => response.json());
+
+  return marketCaps.map((marketCap) => Object.assign(
+    marketCap,
+    symbols.find((symbol) => symbol.symbol === marketCap.symbol),
+    prices.find((price) => price.symbol === marketCap.symbol)
+  ));
+}
+
+// Do not edit the line below.
+exports.trendingStocks = trendingStocks;
